@@ -75,7 +75,7 @@ open class OAuth2Module: AuthzModule {
             config.accountId = "ACCOUNT_FOR_CLIENTID_\(config.clientId)"
         }
         if (session == nil) {
-            self.oauth2Session = TrustedPersistantOAuth2Session(accountId: config.accountId!)
+            self.oauth2Session = TrustedPersistentOAuth2Session(accountId: config.accountId!)
         } else {
             self.oauth2Session = session!
         }
@@ -88,7 +88,7 @@ open class OAuth2Module: AuthzModule {
         self.state = .authorizationStateUnknown
     }
 
-    // MARK: Public API - To be overriden if necessary by OAuth2 specific adapter
+    // MARK: Public API - To be overridden if necessary by OAuth2 specific adapter
 
     /**
     Request an authorization code.
