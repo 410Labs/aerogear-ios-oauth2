@@ -57,9 +57,10 @@ open class OAuth2Module: AuthzModule {
     var applicationDidBecomeActiveNotificationObserver: NSObjectProtocol?
     var state: AuthorizationState
     open var webView: OAuth2WebViewController?
-    open var idToken: String?
     open var serverCode: String?
     open var customDismiss: Bool = false
+
+    open var idToken: String? { return oauth2Session.idToken }
 
     /**
     Initialize an OAuth2 module.
@@ -176,12 +177,13 @@ open class OAuth2Module: AuthzModule {
                     let accessToken: String = unwrappedResponse["access_token"] as! String
                     let expiration = unwrappedResponse["expires_in"] as! NSNumber
                     let exp: String = expiration.stringValue
+                    let idToken: String? = unwrappedResponse["id_token"] as? String
                     var refreshToken = unwrappedRefreshToken
                     if let newRefreshToken = unwrappedResponse["refresh_token"] as? String {
                         refreshToken = newRefreshToken
                     }
 
-                    self.oauth2Session.save(accessToken: accessToken, refreshToken: refreshToken, accessTokenExpiration: exp, refreshTokenExpiration: nil, idToken: nil)
+                    self.oauth2Session.save(accessToken: accessToken, refreshToken: refreshToken, accessTokenExpiration: exp, refreshTokenExpiration: nil, idToken: idToken)
 
                     completionHandler(unwrappedResponse["access_token"], nil)
                 }
@@ -231,7 +233,6 @@ open class OAuth2Module: AuthzModule {
         let expRefresh            = expirationRefresh?.stringValue
 
         self.oauth2Session.save(accessToken: accessToken, refreshToken: refreshToken, accessTokenExpiration: exp, refreshTokenExpiration: expRefresh, idToken: idToken)
-        self.idToken    = self.oauth2Session.idToken
         self.serverCode = serverCode
 
         return accessToken
