@@ -119,14 +119,6 @@ open class Config {
     */
     open var webView: WebViewType = WebViewType.externalSafari
 
-    /**
-    A handler to allow the webview to be pushed onto the navigation controller
-    */
-    open var webViewHandler: ((UIViewController, _ completionHandler: (AnyObject?, NSError?) -> Void) -> ()) = {
-        (webView, completionHandler) in
-        UIApplication.shared.keyWindow?.rootViewController?.present(webView, animated: true, completion: nil)
-    }
-
     public init(base: String, authzEndpoint: String, redirectURL: String, accessTokenEndpoint: String, clientId: String, audienceId: String? = nil, refreshTokenEndpoint: String? = nil, revokeTokenEndpoint: String? = nil, isOpenIDConnect: Bool = false, userInfoEndpoint: String? = nil, scopes: [String] = [],  clientSecret: String? = nil, accountId: String? = nil, webView: WebViewType = WebViewType.externalSafari) {
         self.baseURL = base
         self.authzEndpoint = authzEndpoint

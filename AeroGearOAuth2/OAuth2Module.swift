@@ -56,11 +56,24 @@ open class OAuth2Module: AuthzModule {
     var applicationLaunchNotificationObserver: NSObjectProtocol?
     var applicationDidBecomeActiveNotificationObserver: NSObjectProtocol?
     var state: AuthorizationState
-    open var webView: OAuth2WebViewController?
+    open private(set) var webViewController: UIViewController?
+    open private(set) var loadedURL: URL?
     open var serverCode: String?
-    open var customDismiss: Bool = false
 
     open var idToken: String? { return oauth2Session.idToken }
+    
+    /*
+     Delegate UI events to module user
+     */
+    var beganUIHandling: Bool = false
+    open var beginUIHandler: ((UIViewController) -> Void) = { viewController in
+        UIApplication.shared.keyWindow?.rootViewController?.present(viewController, animated: true, completion: nil)
+    }
+    
+    open var finishUIHandler: ((UIViewController) -> Void) = { _ in
+        UIApplication.shared.keyWindow?.rootViewController?.dismiss(animated: true, completion: nil)
+    }
+    
 
     /**
     Initialize an OAuth2 module.
@@ -83,9 +96,6 @@ open class OAuth2Module: AuthzModule {
         }
 
         self.config = config
-        if config.webView == .embeddedWebView {
-            self.webView = OAuth2WebViewController()
-        }
         self.http = Http(baseURL: config.baseURL, requestSerializer: requestSerializer, responseSerializer:  responseSerializer)
         self.state = .authorizationStateUnknown
     }
@@ -102,10 +112,17 @@ open class OAuth2Module: AuthzModule {
         // external browser, and the oauth code is available so that we can then proceed to request the 'access_token'
         // from the server.
         applicationLaunchNotificationObserver = NotificationCenter.default.addObserver(forName: NSNotification.Name(rawValue: AGAppLaunchedWithURLNotification), object: nil, queue: nil, using: { (notification: Notification!) -> Void in
-            self.extractCode(notification, completionHandler: completionHandler)
-            if ( self.webView != nil && !self.customDismiss) {
-                UIApplication.shared.keyWindow?.rootViewController?.dismiss(animated: true, completion: nil)
-            }
+            self.extractCode(notification, completionHandler: { object, error in
+                completionHandler(object, error)
+                
+                if self.beganUIHandling, let webViewController = self.webViewController {
+                    self.beganUIHandling = false
+                    
+                    self.finishUIHandler(webViewController)
+                    
+                    self.webViewController = nil
+                }
+            })
         })
 
         // register to receive notification when the application becomes active so we
@@ -137,22 +154,40 @@ open class OAuth2Module: AuthzModule {
             completionHandler(nil, error)
             return
         }
+        
         if let url = URL(string:computedUrl.absoluteString + params) {
-            switch config.webView {
-            case .embeddedWebView:
-                if self.webView != nil {
-                    self.webView!.targetURL = url
-                    config.webViewHandler(self.webView!, completionHandler)
-                }
-            case .externalSafari:
-                UIApplication.shared.openURL(url)
-            case .safariViewController:
-                if #available(iOS 9.0, *) {
-                    let safariController = SFSafariViewController(url: url)
-                    config.webViewHandler(safariController, completionHandler)
-                }
+            loadURL(url: url, completionHandler: completionHandler)
+        }
+    }
+    
+    /*
+     Loads URL when needed by `requestAuthorizationCode`
+     
+     :param: url A URL to load, computed by `requestAuthorizationCode`
+     :param: completionHandler Completion handler forwarded from `requestAuthorizationCode`
+     */
+    
+    open func loadURL(url: URL, completionHandler completion: @escaping (AnyObject?, NSError?) -> Void) {
+        switch config.webView {
+        case .embeddedWebView:
+            let webController = OAuth2WebViewController(url: url)
+            beginUIHandler(webController)
+            webViewController = webController
+            beganUIHandling = true
+            
+        case .externalSafari:
+            UIApplication.shared.openURL(url)
+            
+        case .safariViewController:
+            if #available(iOS 9.0, *) {
+                let safariController = SFSafariViewController(url: url)
+                finishUIHandler(safariController)
+                webViewController = safariController
+                beganUIHandling = true
             }
         }
+        
+        loadedURL = url
     }
 
     /**

@@ -188,7 +188,7 @@ class OAuth2ModuleTests: XCTestCase {
             scopes:["https://www.googleapis.com/auth/drive"],
             audienceId: "xxx2.apps.googleusercontent.com"
         )
-        googleConfig.isWebView = true
+        googleConfig.webView = .embeddedWebView
 
         let mockedSession = MockOAuth2SessionWithRefreshToken()
         let oauth2Module = OAuth2Module(config: googleConfig, session: mockedSession)
@@ -196,7 +196,7 @@ class OAuth2ModuleTests: XCTestCase {
             // noop
         }
 
-        let urlString = oauth2Module.webView!.targetURL.absoluteString
+        let urlString = oauth2Module.loadedURL!.absoluteString
         XCTAssertNotNil(urlString.range(of: "audience"), "If URL string doesn't contain an audience field")
     }
 }
