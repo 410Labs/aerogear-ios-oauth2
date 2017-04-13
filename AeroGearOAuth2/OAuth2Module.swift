@@ -181,7 +181,7 @@ open class OAuth2Module: AuthzModule {
         case .safariViewController:
             if #available(iOS 9.0, *) {
                 let safariController = SFSafariViewController(url: url)
-                finishUIHandler(safariController)
+                beginUIHandler(safariController)
                 webViewController = safariController
                 beganUIHandling = true
             }
