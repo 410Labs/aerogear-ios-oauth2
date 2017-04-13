@@ -108,6 +108,7 @@ open class Config {
     public enum WebViewType {
         case embeddedWebView
         case externalSafari
+        case custom(URLLoading) // UIViewController<URLLoading>
         // SFSafariViewController only available in iOS 9+
         @available(iOS 9.0, *)
         case safariViewController

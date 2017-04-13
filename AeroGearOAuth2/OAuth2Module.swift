@@ -178,6 +178,12 @@ open class OAuth2Module: AuthzModule {
         case .externalSafari:
             UIApplication.shared.openURL(url)
             
+        case .custom(let urlLoading):
+            let viewController = urlLoading as! UIViewController
+            beginUIHandler(viewController)
+            urlLoading.loadURL(url: url)
+            beganUIHandling = true
+            
         case .safariViewController:
             if #available(iOS 9.0, *) {
                 let safariController = SFSafariViewController(url: url)

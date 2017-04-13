@@ -16,15 +16,19 @@
 */
 
 import Foundation
-
 import UIKit
+
+public protocol URLLoading {
+    func loadURL(url: URL)
+}
+
 /**
 OAuth2WebViewController is a UIViewController to be used when the Oauth2 flow used an embedded view controller
 rather than an external browser approach.
 */
 open class OAuth2WebViewController: UIViewController, UIWebViewDelegate {
     /// Login URL for OAuth.
-    var targetURL: URL? {
+    var url: URL? {
         didSet {
             if isViewLoaded, webView.window != nil {
                 loadAddressURL()
@@ -37,25 +41,25 @@ open class OAuth2WebViewController: UIViewController, UIWebViewDelegate {
     
     init(url: URL) {
         super.init(nibName: nil, bundle: nil)
-        targetURL = url
+        self.url = url
     }
     
     required public init?(coder aDecoder: NSCoder) {
         super.init(coder: aDecoder)
         
-        if let url = aDecoder.decodeObject(forKey: #keyPath(targetURL)) as? URL {
-            targetURL = url
+        if let url = aDecoder.decodeObject(forKey: "url") as? URL {
+            self.url = url
         }
     }
     
     open override func encode(with aCoder: NSCoder) {
         super.encode(with: aCoder)
         
-        guard let url = targetURL else {
+        guard let url = url else {
             return
         }
         
-        aCoder.encode(url, forKey: #keyPath(targetURL))
+        aCoder.encode(url, forKey: "url")
     }
 
     /// Override of viewDidLoad to load the login page.
@@ -75,7 +79,7 @@ open class OAuth2WebViewController: UIViewController, UIWebViewDelegate {
     }
 
     func loadAddressURL() {
-        guard let url = targetURL else {
+        guard let url = url else {
             return
         }
         
