@@ -27,6 +27,12 @@ public let AGAppLaunchedWithURLNotification = "AGAppLaunchedWithURLNotification"
 public let AGAppDidBecomeActiveNotification = "AGAppDidBecomeActiveNotification"
 public let AGAuthzErrorDomain = "AGAuthzErrorDomain"
 
+public struct AGErrorCodes {
+    static let general = 0
+    static let unknown = 1
+    static let userCanceled = 100
+}
+
 /**
 The current state that this module is in.
 
@@ -66,11 +72,21 @@ open class OAuth2Module: AuthzModule {
      Delegate UI events to module user
      */
     var beganUIHandling: Bool = false
-    open var beginUIHandler: ((UIViewController) -> Void) = { viewController in
+    open var beginUIHandler: ((OAuth2Module, @escaping (Bool) -> Void) -> Void) = { module, done in
+        if let presentedViewController = UIApplication.shared.keyWindow?.rootViewController?.presentedViewController {
+            presentedViewController.dismiss(animated: true, completion: {
+                done(true)
+            })
+        } else {
+            done(true)
+        }
+    }
+    
+    open var handleUI: ((OAuth2Module, UIViewController) -> Void) = { module, viewController in
         UIApplication.shared.keyWindow?.rootViewController?.present(viewController, animated: true, completion: nil)
     }
     
-    open var finishUIHandler: ((UIViewController) -> Void) = { _ in
+    open var finishUIHandler: ((OAuth2Module, UIViewController) -> Void) = { module, UIViewController in
         UIApplication.shared.keyWindow?.rootViewController?.dismiss(animated: true, completion: nil)
     }
     
@@ -118,7 +134,7 @@ open class OAuth2Module: AuthzModule {
                 if self.beganUIHandling, let webViewController = self.webViewController {
                     self.beganUIHandling = false
                     
-                    self.finishUIHandler(webViewController)
+                    self.finishUIHandler(self, webViewController)
                     
                     self.webViewController = nil
                 }
@@ -150,7 +166,7 @@ open class OAuth2Module: AuthzModule {
         }
 
         guard let computedUrl = http.calculateURL(baseURL: config.baseURL, url: config.authzEndpoint) else {
-            let error = NSError(domain:AGAuthzErrorDomain, code:0, userInfo:["NSLocalizedDescriptionKey": "Malformatted URL."])
+            let error = NSError(domain:AGAuthzErrorDomain, code:AGErrorCodes.general, userInfo:["NSLocalizedDescriptionKey": "Malformatted URL."])
             completionHandler(nil, error)
             return
         }
@@ -168,27 +184,53 @@ open class OAuth2Module: AuthzModule {
      */
     
     open func loadURL(url: URL, completionHandler completion: @escaping (AnyObject?, NSError?) -> Void) {
+        let canceledError = NSError(domain:AGAuthzErrorDomain, code:AGErrorCodes.userCanceled, userInfo:["NSLocalizedDescriptionKey": "Action canceled"])
+        
         switch config.webView {
         case .embeddedWebView:
-            let webController = OAuth2WebViewController(url: url)
-            beginUIHandler(webController)
-            webViewController = webController
+            beginUIHandler(self) { success in
+                if success {
+                    let webController = OAuth2WebViewController(url: url)
+                    self.handleUI(self, webController)
+                    self.webViewController = webController
+                } else {
+                    completion(nil, canceledError)
+                    self.beganUIHandling = false
+                    self.webViewController = nil
+                }
+            }
             beganUIHandling = true
             
         case .externalSafari:
             UIApplication.shared.openURL(url)
             
         case .custom(let urlLoading):
-            let viewController = urlLoading as! UIViewController
-            beginUIHandler(viewController)
-            urlLoading.loadURL(url: url)
+            beginUIHandler(self) { success in
+                if success {
+                    let viewController = urlLoading(url)
+                    self.handleUI(self, viewController)
+                    self.webViewController = viewController
+                } else {
+                    completion(nil, canceledError)
+                    self.beganUIHandling = false
+                    self.webViewController = nil
+                }
+            }
             beganUIHandling = true
             
         case .safariViewController:
             if #available(iOS 9.0, *) {
-                let safariController = SFSafariViewController(url: url)
-                beginUIHandler(safariController)
-                webViewController = safariController
+                beginUIHandler(self) { success in
+                    if success {
+                        let safariController = SFSafariViewController(url: url)
+                        self.handleUI(self, safariController)
+                        self.webViewController = safariController
+                    } else {
+                        completion(nil, canceledError)
+                        self.beganUIHandling = false
+                        self.webViewController = nil
+                    }
+                }
                 beganUIHandling = true
             }
         }
@@ -406,13 +448,13 @@ open class OAuth2Module: AuthzModule {
             state = .authorizationStateApproved
         } else {
             guard let errorName = queryParamsDict["error"] else {
-                let error = NSError(domain:AGAuthzErrorDomain, code:0, userInfo:["NSLocalizedDescriptionKey": "User cancelled authorization."])
+                let error = NSError(domain:AGAuthzErrorDomain, code: AGErrorCodes.general, userInfo:["NSLocalizedDescriptionKey": "User cancelled authorization."])
                 completionHandler(nil, error)
                 return
             }
 
             let errorDescription = queryParamsDict["error_description"] ?? "There was an error!"
-            let error = NSError(domain: AGAuthzErrorDomain, code: 1, userInfo: ["error": errorName, "errorDescription": errorDescription])
+            let error = NSError(domain: AGAuthzErrorDomain, code: AGErrorCodes.unknown, userInfo: ["error": errorName, "errorDescription": errorDescription])
 
             completionHandler(nil, error)
         }

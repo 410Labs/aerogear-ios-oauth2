@@ -18,10 +18,6 @@
 import Foundation
 import UIKit
 
-public protocol URLLoading {
-    func loadURL(url: URL)
-}
-
 /**
 OAuth2WebViewController is a UIViewController to be used when the Oauth2 flow used an embedded view controller
 rather than an external browser approach.
