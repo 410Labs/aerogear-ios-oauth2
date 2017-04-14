@@ -28,9 +28,9 @@ public let AGAppDidBecomeActiveNotification = "AGAppDidBecomeActiveNotification"
 public let AGAuthzErrorDomain = "AGAuthzErrorDomain"
 
 public struct AGErrorCodes {
-    static let general = 0
-    static let unknown = 1
-    static let userCanceled = 100
+    public static let general = 0
+    public static let unknown = 1
+    public static let userCanceled = 100
 }
 
 /**
