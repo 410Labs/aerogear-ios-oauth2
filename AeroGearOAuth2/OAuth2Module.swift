@@ -56,7 +56,7 @@ open class OAuth2Module: AuthzModule {
      :param: completionHandler A block object to be executed when the request operation finishes.
      */
 
-    let config: Config
+    open let config: Config
     open var http: Http
     open var oauth2Session: OAuth2Session
     var applicationLaunchNotificationObserver: NSObjectProtocol?
@@ -71,8 +71,12 @@ open class OAuth2Module: AuthzModule {
     /*
      Delegate UI events to module user
      */
-    var beganUIHandling: Bool = false
-    open var beginUIHandler: ((OAuth2Module, @escaping (Bool) -> Void) -> Void) = { module, done in
+    open private(set) var beganHandlingUI: Bool = false
+    
+    /*
+     Block run at the beginning of handling UI. Allows to prepare application to state where authorization UI can be presented. Second argument with `true` has to be run to proceed.
+     */
+    open var beginHandlingUICallback: ((OAuth2Module, @escaping (Bool) -> Void) -> Void) = { module, done in
         if let presentedViewController = UIApplication.shared.keyWindow?.rootViewController?.presentedViewController {
             presentedViewController.dismiss(animated: true, completion: {
                 done(true)
@@ -82,11 +86,17 @@ open class OAuth2Module: AuthzModule {
         }
     }
     
-    open var handleUI: ((OAuth2Module, UIViewController) -> Void) = { module, viewController in
+    /*
+     Block for actually handling the UI for authorization. Provides UIViewController (Internal WebView, Safari, Custom) to be presented on the UI.
+     */
+    open var handleUICallback: ((OAuth2Module, UIViewController) -> Void) = { module, viewController in
         UIApplication.shared.keyWindow?.rootViewController?.present(viewController, animated: true, completion: nil)
     }
     
-    open var finishUIHandler: ((OAuth2Module, UIViewController) -> Void) = { module, UIViewController in
+    /*
+     Block for handling cleanup after authorization was being handled. Executed only if beginHandlingUICallback callback was `true.
+     */
+    open var finishHandlingUICallback: ((OAuth2Module, UIViewController) -> Void) = { module, UIViewController in
         UIApplication.shared.keyWindow?.rootViewController?.dismiss(animated: true, completion: nil)
     }
     
@@ -131,10 +141,10 @@ open class OAuth2Module: AuthzModule {
             self.extractCode(notification, completionHandler: { object, error in
                 completionHandler(object, error)
                 
-                if self.beganUIHandling, let webViewController = self.webViewController {
-                    self.beganUIHandling = false
+                if self.beganHandlingUI, let webViewController = self.webViewController {
+                    self.beganHandlingUI = false
                     
-                    self.finishUIHandler(self, webViewController)
+                    self.finishHandlingUICallback(self, webViewController)
                     
                     self.webViewController = nil
                 }
@@ -188,50 +198,50 @@ open class OAuth2Module: AuthzModule {
         
         switch config.webView {
         case .embeddedWebView:
-            beginUIHandler(self) { success in
+            beginHandlingUICallback(self) { success in
                 if success {
                     let webController = OAuth2WebViewController(url: url)
-                    self.handleUI(self, webController)
+                    self.handleUICallback(self, webController)
                     self.webViewController = webController
                 } else {
                     completion(nil, canceledError)
-                    self.beganUIHandling = false
+                    self.beganHandlingUI = false
                     self.webViewController = nil
                 }
             }
-            beganUIHandling = true
+            beganHandlingUI = true
             
         case .externalSafari:
             UIApplication.shared.openURL(url)
             
         case .custom(let urlLoading):
-            beginUIHandler(self) { success in
+            beginHandlingUICallback(self) { success in
                 if success {
                     let viewController = urlLoading(url)
-                    self.handleUI(self, viewController)
+                    self.handleUICallback(self, viewController)
                     self.webViewController = viewController
                 } else {
                     completion(nil, canceledError)
-                    self.beganUIHandling = false
+                    self.beganHandlingUI = false
                     self.webViewController = nil
                 }
             }
-            beganUIHandling = true
+            beganHandlingUI = true
             
         case .safariViewController:
             if #available(iOS 9.0, *) {
-                beginUIHandler(self) { success in
+                beginHandlingUICallback(self) { success in
                     if success {
                         let safariController = SFSafariViewController(url: url)
-                        self.handleUI(self, safariController)
+                        self.handleUICallback(self, safariController)
                         self.webViewController = safariController
                     } else {
                         completion(nil, canceledError)
-                        self.beganUIHandling = false
+                        self.beganHandlingUI = false
                         self.webViewController = nil
                     }
                 }
-                beganUIHandling = true
+                beganHandlingUI = true
             }
         }
         
