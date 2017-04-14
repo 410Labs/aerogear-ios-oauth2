@@ -33,6 +33,19 @@ public struct AGErrorCodes {
     public static let userCanceled = 100
 }
 
+public func isAGError(error: Error, withCode code: Int? = nil) -> Bool {
+    let nserror = error as NSError
+    guard nserror.domain == AGAuthzErrorDomain else {
+        return false
+    }
+    
+    guard let code = code else {
+        return true
+    }
+    
+    return nserror.code == code
+}
+
 /**
 The current state that this module is in.
 
