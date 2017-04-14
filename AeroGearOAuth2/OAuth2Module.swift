@@ -109,8 +109,8 @@ open class OAuth2Module: AuthzModule {
     /*
      Block for handling cleanup after authorization was being handled. Executed only if beginHandlingUICallback callback was `true.
      */
-    open var finishHandlingUICallback: ((OAuth2Module, UIViewController) -> Void) = { module, UIViewController in
-        UIApplication.shared.keyWindow?.rootViewController?.dismiss(animated: true, completion: nil)
+    open var finishHandlingUICallback: ((OAuth2Module, UIViewController, @escaping () -> Void) -> Void) = { module, UIViewController, callback in
+        UIApplication.shared.keyWindow?.rootViewController?.dismiss(animated: true, completion: callback)
     }
     
 
@@ -152,14 +152,18 @@ open class OAuth2Module: AuthzModule {
         // from the server.
         applicationLaunchNotificationObserver = NotificationCenter.default.addObserver(forName: NSNotification.Name(rawValue: AGAppLaunchedWithURLNotification), object: nil, queue: nil, using: { (notification: Notification!) -> Void in
             self.extractCode(notification, completionHandler: { object, error in
-                completionHandler(object, error)
+                
                 
                 if self.beganHandlingUI, let webViewController = self.webViewController {
                     self.beganHandlingUI = false
                     
-                    self.finishHandlingUICallback(self, webViewController)
+                    self.finishHandlingUICallback(self, webViewController, {
+                        completionHandler(object, error)
+                        self.webViewController = nil
+                    })
                     
-                    self.webViewController = nil
+                } else {
+                    completionHandler(object, error)
                 }
             })
         })
