@@ -27,6 +27,25 @@ public let AGAppLaunchedWithURLNotification = "AGAppLaunchedWithURLNotification"
 public let AGAppDidBecomeActiveNotification = "AGAppDidBecomeActiveNotification"
 public let AGAuthzErrorDomain = "AGAuthzErrorDomain"
 
+public struct AGErrorCodes {
+    public static let general = 0
+    public static let unknown = 1
+    public static let userCanceled = 100
+}
+
+public func isAGError(error: Error, withCode code: Int? = nil) -> Bool {
+    let nserror = error as NSError
+    guard nserror.domain == AGAuthzErrorDomain else {
+        return false
+    }
+    
+    guard let code = code else {
+        return true
+    }
+    
+    return nserror.code == code
+}
+
 /**
 The current state that this module is in.
 
@@ -50,17 +69,50 @@ open class OAuth2Module: AuthzModule {
      :param: completionHandler A block object to be executed when the request operation finishes.
      */
 
-    let config: Config
+    open let config: Config
     open var http: Http
     open var oauth2Session: OAuth2Session
     var applicationLaunchNotificationObserver: NSObjectProtocol?
     var applicationDidBecomeActiveNotificationObserver: NSObjectProtocol?
     var state: AuthorizationState
-    open var webView: OAuth2WebViewController?
+    open private(set) var webViewController: UIViewController?
+    open private(set) var loadedURL: URL?
     open var serverCode: String?
-    open var customDismiss: Bool = false
 
     open var idToken: String? { return oauth2Session.idToken }
+    
+    /*
+     Delegate UI events to module user
+     */
+    open private(set) var beganHandlingUI: Bool = false
+    
+    /*
+     Block run at the beginning of handling UI. Allows to prepare application to state where authorization UI can be presented. Second argument with `true` has to be run to proceed.
+     */
+    open var beginHandlingUICallback: ((OAuth2Module, @escaping (Bool) -> Void) -> Void) = { module, done in
+        if let presentedViewController = UIApplication.shared.keyWindow?.rootViewController?.presentedViewController {
+            presentedViewController.dismiss(animated: true, completion: {
+                done(true)
+            })
+        } else {
+            done(true)
+        }
+    }
+    
+    /*
+     Block for actually handling the UI for authorization. Provides UIViewController (Internal WebView, Safari, Custom) to be presented on the UI.
+     */
+    open var handleUICallback: ((OAuth2Module, UIViewController) -> Void) = { module, viewController in
+        UIApplication.shared.keyWindow?.rootViewController?.present(viewController, animated: true, completion: nil)
+    }
+    
+    /*
+     Block for handling cleanup after authorization was being handled. Executed only if beginHandlingUICallback callback was `true.
+     */
+    open var finishHandlingUICallback: ((OAuth2Module, UIViewController, @escaping () -> Void) -> Void) = { module, UIViewController, callback in
+        UIApplication.shared.keyWindow?.rootViewController?.dismiss(animated: true, completion: callback)
+    }
+    
 
     /**
     Initialize an OAuth2 module.
@@ -83,9 +135,6 @@ open class OAuth2Module: AuthzModule {
         }
 
         self.config = config
-        if config.webView == .embeddedWebView {
-            self.webView = OAuth2WebViewController()
-        }
         self.http = Http(baseURL: config.baseURL, requestSerializer: requestSerializer, responseSerializer:  responseSerializer)
         self.state = .authorizationStateUnknown
     }
@@ -102,10 +151,21 @@ open class OAuth2Module: AuthzModule {
         // external browser, and the oauth code is available so that we can then proceed to request the 'access_token'
         // from the server.
         applicationLaunchNotificationObserver = NotificationCenter.default.addObserver(forName: NSNotification.Name(rawValue: AGAppLaunchedWithURLNotification), object: nil, queue: nil, using: { (notification: Notification!) -> Void in
-            self.extractCode(notification, completionHandler: completionHandler)
-            if ( self.webView != nil && !self.customDismiss) {
-                UIApplication.shared.keyWindow?.rootViewController?.dismiss(animated: true, completion: nil)
-            }
+            self.extractCode(notification, completionHandler: { object, error in
+                
+                
+                if self.beganHandlingUI, let webViewController = self.webViewController {
+                    self.beganHandlingUI = false
+                    
+                    self.finishHandlingUICallback(self, webViewController, {
+                        completionHandler(object, error)
+                        self.webViewController = nil
+                    })
+                    
+                } else {
+                    completionHandler(object, error)
+                }
+            })
         })
 
         // register to receive notification when the application becomes active so we
@@ -133,26 +193,76 @@ open class OAuth2Module: AuthzModule {
         }
 
         guard let computedUrl = http.calculateURL(baseURL: config.baseURL, url: config.authzEndpoint) else {
-            let error = NSError(domain:AGAuthzErrorDomain, code:0, userInfo:["NSLocalizedDescriptionKey": "Malformatted URL."])
+            let error = NSError(domain:AGAuthzErrorDomain, code:AGErrorCodes.general, userInfo:["NSLocalizedDescriptionKey": "Malformatted URL."])
             completionHandler(nil, error)
             return
         }
+        
         if let url = URL(string:computedUrl.absoluteString + params) {
-            switch config.webView {
-            case .embeddedWebView:
-                if self.webView != nil {
-                    self.webView!.targetURL = url
-                    config.webViewHandler(self.webView!, completionHandler)
-                }
-            case .externalSafari:
-                UIApplication.shared.openURL(url)
-            case .safariViewController:
-                if #available(iOS 9.0, *) {
-                    let safariController = SFSafariViewController(url: url)
-                    config.webViewHandler(safariController, completionHandler)
+            loadURL(url: url, completionHandler: completionHandler)
+        }
+    }
+    
+    /*
+     Loads URL when needed by `requestAuthorizationCode`
+     
+     :param: url A URL to load, computed by `requestAuthorizationCode`
+     :param: completionHandler Completion handler forwarded from `requestAuthorizationCode`
+     */
+    
+    open func loadURL(url: URL, completionHandler completion: @escaping (AnyObject?, NSError?) -> Void) {
+        let canceledError = NSError(domain:AGAuthzErrorDomain, code:AGErrorCodes.userCanceled, userInfo:["NSLocalizedDescriptionKey": "Action canceled"])
+        
+        switch config.webView {
+        case .embeddedWebView:
+            beginHandlingUICallback(self) { success in
+                if success {
+                    let webController = OAuth2WebViewController(url: url)
+                    self.handleUICallback(self, webController)
+                    self.webViewController = webController
+                } else {
+                    completion(nil, canceledError)
+                    self.beganHandlingUI = false
+                    self.webViewController = nil
                 }
             }
+            beganHandlingUI = true
+            
+        case .externalSafari:
+            UIApplication.shared.openURL(url)
+            
+        case .custom(let urlLoading):
+            beginHandlingUICallback(self) { success in
+                if success {
+                    let viewController = urlLoading(url)
+                    self.handleUICallback(self, viewController)
+                    self.webViewController = viewController
+                } else {
+                    completion(nil, canceledError)
+                    self.beganHandlingUI = false
+                    self.webViewController = nil
+                }
+            }
+            beganHandlingUI = true
+            
+        case .safariViewController:
+            if #available(iOS 9.0, *) {
+                beginHandlingUICallback(self) { success in
+                    if success {
+                        let safariController = SFSafariViewController(url: url)
+                        self.handleUICallback(self, safariController)
+                        self.webViewController = safariController
+                    } else {
+                        completion(nil, canceledError)
+                        self.beganHandlingUI = false
+                        self.webViewController = nil
+                    }
+                }
+                beganHandlingUI = true
+            }
         }
+        
+        loadedURL = url
     }
 
     /**
@@ -365,13 +475,13 @@ open class OAuth2Module: AuthzModule {
             state = .authorizationStateApproved
         } else {
             guard let errorName = queryParamsDict["error"] else {
-                let error = NSError(domain:AGAuthzErrorDomain, code:0, userInfo:["NSLocalizedDescriptionKey": "User cancelled authorization."])
+                let error = NSError(domain:AGAuthzErrorDomain, code: AGErrorCodes.general, userInfo:["NSLocalizedDescriptionKey": "User cancelled authorization."])
                 completionHandler(nil, error)
                 return
             }
 
             let errorDescription = queryParamsDict["error_description"] ?? "There was an error!"
-            let error = NSError(domain: AGAuthzErrorDomain, code: 1, userInfo: ["error": errorName, "errorDescription": errorDescription])
+            let error = NSError(domain: AGAuthzErrorDomain, code: AGErrorCodes.unknown, userInfo: ["error": errorName, "errorDescription": errorDescription])
 
             completionHandler(nil, error)
         }

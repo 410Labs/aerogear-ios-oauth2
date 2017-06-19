@@ -16,24 +16,56 @@
 */
 
 import Foundation
-
 import UIKit
+
 /**
 OAuth2WebViewController is a UIViewController to be used when the Oauth2 flow used an embedded view controller
 rather than an external browser approach.
 */
 open class OAuth2WebViewController: UIViewController, UIWebViewDelegate {
     /// Login URL for OAuth.
-    var targetURL: URL!
+    var url: URL? {
+        didSet {
+            if isViewLoaded, webView.window != nil {
+                loadAddressURL()
+            }
+        }
+    }
+    
     /// WebView instance used to load login page.
-    var webView: UIWebView = UIWebView()
+    let webView: UIWebView = UIWebView()
+    
+    init(url: URL) {
+        super.init(nibName: nil, bundle: nil)
+        self.url = url
+    }
+    
+    required public init?(coder aDecoder: NSCoder) {
+        super.init(coder: aDecoder)
+        
+        if let url = aDecoder.decodeObject(forKey: "url") as? URL {
+            self.url = url
+        }
+    }
+    
+    open override func encode(with aCoder: NSCoder) {
+        super.encode(with: aCoder)
+        
+        guard let url = url else {
+            return
+        }
+        
+        aCoder.encode(url, forKey: "url")
+    }
 
     /// Override of viewDidLoad to load the login page.
     override open func viewDidLoad() {
         super.viewDidLoad()
+        
         webView.frame = UIScreen.main.bounds
         webView.delegate = self
         self.view.addSubview(webView)
+        
         loadAddressURL()
     }
 
@@ -42,12 +74,12 @@ open class OAuth2WebViewController: UIViewController, UIWebViewDelegate {
         self.webView.frame = self.view.bounds
     }
 
-    override open func didReceiveMemoryWarning() {
-        super.didReceiveMemoryWarning()
-    }
-
     func loadAddressURL() {
-        let req = URLRequest(url: targetURL)
+        guard let url = url else {
+            return
+        }
+        
+        let req = URLRequest(url: url)
         webView.loadRequest(req)
     }
 }
