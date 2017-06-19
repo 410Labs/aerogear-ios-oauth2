@@ -30,6 +30,7 @@ public let AGAuthzErrorDomain = "AGAuthzErrorDomain"
 public struct AGErrorCodes {
     public static let general = 0
     public static let unknown = 1
+    public static let wrongStateParameter = 1
     public static let userCanceled = 100
 }
 
@@ -80,7 +81,9 @@ open class OAuth2Module: AuthzModule {
     open var serverCode: String?
 
     open var idToken: String? { return oauth2Session.idToken }
-    
+
+    private let requestIdentifier: String = ProcessInfo.processInfo.globallyUniqueString
+
     /*
      Delegate UI events to module user
      */
@@ -186,7 +189,7 @@ open class OAuth2Module: AuthzModule {
         self.state = .authorizationStatePendingExternalApproval
 
         // calculate final url
-        var params = "?scope=\(config.scope)&redirect_uri=\(config.redirectURL.urlEncode())&client_id=\(config.clientId)&response_type=code"
+        var params = "?scope=\(config.scope)&redirect_uri=\(config.redirectURL.urlEncode())&client_id=\(config.clientId)&response_type=code&state=\(requestIdentifier)"
 
         if let audienceId = config.audienceId {
             params = "\(params)&audience=\(audienceId)"
@@ -467,12 +470,17 @@ open class OAuth2Module: AuthzModule {
 
         // extract the code from the URL
         let queryParamsDict = self.parametersFrom(queryString: url?.query)
-        let code = queryParamsDict["code"]
+
         // if exists perform the exchange
-        if (code != nil) {
-            self.exchangeAuthorizationCodeForAccessToken(code: code!, completionHandler: completionHandler)
-            // update state
-            state = .authorizationStateApproved
+        if let code = queryParamsDict["code"] {
+            if queryParamsDict["state"] == requestIdentifier {
+                self.exchangeAuthorizationCodeForAccessToken(code: code, completionHandler: completionHandler)
+                // update state
+                state = .authorizationStateApproved
+            } else {
+                let error = NSError(domain: AGAuthzErrorDomain, code: AGErrorCodes.wrongStateParameter, userInfo: [:])
+                completionHandler(nil, error)
+            }
         } else {
             guard let errorName = queryParamsDict["error"] else {
                 let error = NSError(domain:AGAuthzErrorDomain, code: AGErrorCodes.general, userInfo:["NSLocalizedDescriptionKey": "User cancelled authorization."])
@@ -485,6 +493,7 @@ open class OAuth2Module: AuthzModule {
 
             completionHandler(nil, error)
         }
+
         // finally, unregister
         self.stopObserving()
     }
