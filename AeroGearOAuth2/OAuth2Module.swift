@@ -82,7 +82,7 @@ open class OAuth2Module: AuthzModule {
 
     open var idToken: String? { return oauth2Session.idToken }
 
-    private let requestIdentifier: String = ProcessInfo.processInfo.globallyUniqueString
+    open var requestIdentifier: String = ProcessInfo.processInfo.globallyUniqueString
 
     /*
      Delegate UI events to module user
