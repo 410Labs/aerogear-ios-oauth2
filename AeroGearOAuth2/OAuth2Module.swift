@@ -188,22 +188,34 @@ open class OAuth2Module: AuthzModule {
         // update state to 'Pending'
         self.state = .authorizationStatePendingExternalApproval
 
-        // calculate final url
-        var params = "?scope=\(config.scope)&redirect_uri=\(config.redirectURL.urlEncode())&client_id=\(config.clientId)&response_type=code&state=\(requestIdentifier)"
-
-        if let audienceId = config.audienceId {
-            params = "\(params)&audience=\(audienceId)"
+        guard let computedUrl = http.calculateURL(baseURL: config.baseURL, url: config.authzEndpoint),
+            let components = NSURLComponents(url: computedUrl, resolvingAgainstBaseURL: false) else {
+                let error = NSError(domain:AGAuthzErrorDomain, code:AGErrorCodes.general, userInfo:["NSLocalizedDescriptionKey": "Malformatted URL."])
+                completionHandler(nil, error)
+                return
         }
 
-        guard let computedUrl = http.calculateURL(baseURL: config.baseURL, url: config.authzEndpoint) else {
-            let error = NSError(domain:AGAuthzErrorDomain, code:AGErrorCodes.general, userInfo:["NSLocalizedDescriptionKey": "Malformatted URL."])
+        var queryItems: [URLQueryItem] = [
+            URLQueryItem(name: "scope", value: config.scope),
+            URLQueryItem(name: "redirect_uri", value: config.redirectURL),
+            URLQueryItem(name: "client_id", value: config.clientId),
+            URLQueryItem(name: "response_type", value: "code"),
+            URLQueryItem(name: "state", value: requestIdentifier)
+        ]
+
+        if let audienceId = config.audienceId {
+            queryItems.append(URLQueryItem(name: "audience", value: audienceId))
+        }
+
+        components.queryItems = queryItems
+
+        guard let url = components.url else {
+            let error = NSError(domain:AGAuthzErrorDomain, code:AGErrorCodes.general, userInfo:["NSLocalizedDescriptionKey": "Malformed parameters."])
             completionHandler(nil, error)
             return
         }
-        
-        if let url = URL(string:computedUrl.absoluteString + params) {
-            loadURL(url: url, completionHandler: completionHandler)
-        }
+
+        loadURL(url: url, completionHandler: completionHandler)
     }
     
     /*
