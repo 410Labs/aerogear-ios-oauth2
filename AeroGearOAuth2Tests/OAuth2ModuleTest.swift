@@ -196,7 +196,21 @@ class OAuth2ModuleTests: XCTestCase {
             // noop
         }
 
-        let urlString = oauth2Module.loadedURL!.absoluteString
-        XCTAssertNotNil(urlString.range(of: "audience"), "If URL string doesn't contain an audience field")
+        let components = URLComponents(url: oauth2Module.loadedURL!, resolvingAgainstBaseURL: false)
+
+        func assertQueryItemWithName(_ name: String, hasValue value: String?) {
+            let queryItem = components?.queryItems?.first(where: { (item) -> Bool in
+                return item.name == name
+            })
+
+            XCTAssertEqual(queryItem?.value, value)
+        }
+
+        assertQueryItemWithName("audience", hasValue: googleConfig.audienceId)
+        assertQueryItemWithName("client_id", hasValue: googleConfig.clientId)
+        assertQueryItemWithName("scope", hasValue: googleConfig.scope)
+
+        assertQueryItemWithName("response_type", hasValue: "code")
+        assertQueryItemWithName("state", hasValue: oauth2Module.requestIdentifier)
     }
 }
