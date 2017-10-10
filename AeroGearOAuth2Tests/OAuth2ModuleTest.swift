@@ -20,10 +20,6 @@ import XCTest
 @testable import AeroGearOAuth2
 import OHHTTPStubs
 
-public func stub(condition: @escaping OHHTTPStubsTestBlock, response: @escaping OHHTTPStubsResponseBlock) -> OHHTTPStubsDescriptor {
-    return OHHTTPStubs.stubRequests(passingTest: condition, withStubResponse: response)
-}
-
 func setupStubWithNSURLSessionDefaultConfiguration() {
     // set up http stub
     _ = stub(condition: {_ in return true}, response: { (request: URLRequest!) -> OHHTTPStubsResponse in

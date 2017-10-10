@@ -40,6 +40,12 @@
 		A63A19BE1F8D3CBA00D71704 /* ResponseSerializer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A63A19B31F8D3CBA00D71704 /* ResponseSerializer.swift */; };
 		A63A19BF1F8D3CBA00D71704 /* StringResponseSerializer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A63A19B41F8D3CBA00D71704 /* StringResponseSerializer.swift */; };
 		A63A19C01F8D3CBA00D71704 /* Utils.swift in Sources */ = {isa = PBXBuildFile; fileRef = A63A19B51F8D3CBA00D71704 /* Utils.swift */; };
+		A67E4AE41F8D3F5100EB1527 /* HttpAuthenticationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A67E4ADE1F8D3F5100EB1527 /* HttpAuthenticationTests.swift */; };
+		A67E4AE51F8D3F5100EB1527 /* HttpTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A67E4ADF1F8D3F5100EB1527 /* HttpTests.swift */; };
+		A67E4AE61F8D3F5100EB1527 /* JSONRequestSerializerTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = A67E4AE01F8D3F5100EB1527 /* JSONRequestSerializerTest.swift */; };
+		A67E4AE71F8D3F5100EB1527 /* JSONResponseSerializerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A67E4AE11F8D3F5100EB1527 /* JSONResponseSerializerTests.swift */; };
+		A67E4AE81F8D3F5100EB1527 /* RequestSerializerTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = A67E4AE21F8D3F5100EB1527 /* RequestSerializerTest.swift */; };
+		A67E4AE91F8D3F5100EB1527 /* UtilsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A67E4AE31F8D3F5100EB1527 /* UtilsTests.swift */; };
 		AA929A5B1EA1094C0034A034 /* ErrorsTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA929A5A1EA1094C0034A034 /* ErrorsTest.swift */; };
 		B18D33472E86C2B2AA07D19D /* Pods_AeroGearOAuth2Tests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2917739A0BF73285D969FA56 /* Pods_AeroGearOAuth2Tests.framework */; };
 /* End PBXBuildFile section */
@@ -110,6 +116,12 @@
 		A63A19B31F8D3CBA00D71704 /* ResponseSerializer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ResponseSerializer.swift; sourceTree = "<group>"; };
 		A63A19B41F8D3CBA00D71704 /* StringResponseSerializer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = StringResponseSerializer.swift; sourceTree = "<group>"; };
 		A63A19B51F8D3CBA00D71704 /* Utils.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Utils.swift; sourceTree = "<group>"; };
+		A67E4ADE1F8D3F5100EB1527 /* HttpAuthenticationTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = HttpAuthenticationTests.swift; path = HTTP/HttpAuthenticationTests.swift; sourceTree = "<group>"; };
+		A67E4ADF1F8D3F5100EB1527 /* HttpTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = HttpTests.swift; path = HTTP/HttpTests.swift; sourceTree = "<group>"; };
+		A67E4AE01F8D3F5100EB1527 /* JSONRequestSerializerTest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = JSONRequestSerializerTest.swift; path = HTTP/JSONRequestSerializerTest.swift; sourceTree = "<group>"; };
+		A67E4AE11F8D3F5100EB1527 /* JSONResponseSerializerTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = JSONResponseSerializerTests.swift; path = HTTP/JSONResponseSerializerTests.swift; sourceTree = "<group>"; };
+		A67E4AE21F8D3F5100EB1527 /* RequestSerializerTest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = RequestSerializerTest.swift; path = HTTP/RequestSerializerTest.swift; sourceTree = "<group>"; };
+		A67E4AE31F8D3F5100EB1527 /* UtilsTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = UtilsTests.swift; path = HTTP/UtilsTests.swift; sourceTree = "<group>"; };
 		AA929A5A1EA1094C0034A034 /* ErrorsTest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ErrorsTest.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -193,6 +205,7 @@
 		4833046E19AF1635002F8DA9 /* AeroGearOAuth2Tests */ = {
 			isa = PBXGroup;
 			children = (
+				A67E4ADD1F8D3F3400EB1527 /* HTTP */,
 				485AAB901A383F9900ABEBB2 /* Mock */,
 				485D73781A35B6240007D9EC /* OpenIDConnectFacebookOAuth2ModuleTest.swift */,
 				485D73791A35B6240007D9EC /* OpenIDConnectGoogleOAuth2ModuleTest.swift */,
@@ -250,6 +263,19 @@
 				A63A19B51F8D3CBA00D71704 /* Utils.swift */,
 			);
 			path = HTTP;
+			sourceTree = "<group>";
+		};
+		A67E4ADD1F8D3F3400EB1527 /* HTTP */ = {
+			isa = PBXGroup;
+			children = (
+				A67E4ADE1F8D3F5100EB1527 /* HttpAuthenticationTests.swift */,
+				A67E4ADF1F8D3F5100EB1527 /* HttpTests.swift */,
+				A67E4AE01F8D3F5100EB1527 /* JSONRequestSerializerTest.swift */,
+				A67E4AE11F8D3F5100EB1527 /* JSONResponseSerializerTests.swift */,
+				A67E4AE21F8D3F5100EB1527 /* RequestSerializerTest.swift */,
+				A67E4AE31F8D3F5100EB1527 /* UtilsTests.swift */,
+			);
+			name = HTTP;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -450,15 +476,21 @@
 			files = (
 				4872F71A19EFE80F00F3FDE8 /* DateUtilsTest.swift in Sources */,
 				485D737B1A35B6240007D9EC /* OpenIDConnectFacebookOAuth2ModuleTest.swift in Sources */,
+				A67E4AE91F8D3F5100EB1527 /* UtilsTests.swift in Sources */,
 				485AAB941A383FB500ABEBB2 /* OAuth2ModuleMock.swift in Sources */,
 				48432BE91A2F727C00F7A0FF /* ConfigTest.swift in Sources */,
 				48C94D8019C1F0970000ABBB /* OAuth2ModuleTest.swift in Sources */,
+				A67E4AE61F8D3F5100EB1527 /* JSONRequestSerializerTest.swift in Sources */,
+				A67E4AE51F8D3F5100EB1527 /* HttpTests.swift in Sources */,
 				485D737D1A35B6240007D9EC /* OpenIDConnectKeycloakOAuth2ModuleTest.swift in Sources */,
 				05BCE4A31DCFE1EC00DD931F /* FacebookOAuth2ModuleTest.swift in Sources */,
+				A67E4AE81F8D3F5100EB1527 /* RequestSerializerTest.swift in Sources */,
 				AA929A5B1EA1094C0034A034 /* ErrorsTest.swift in Sources */,
 				485AAB831A37259E00ABEBB2 /* KeycloakOAuth2ModuleTest.swift in Sources */,
 				48CD52DF19B0CB5A008D0694 /* OAuth2SessionTest.swift in Sources */,
+				A67E4AE71F8D3F5100EB1527 /* JSONResponseSerializerTests.swift in Sources */,
 				485D737C1A35B6240007D9EC /* OpenIDConnectGoogleOAuth2ModuleTest.swift in Sources */,
+				A67E4AE41F8D3F5100EB1527 /* HttpAuthenticationTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
