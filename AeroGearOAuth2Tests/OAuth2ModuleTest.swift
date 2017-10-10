@@ -18,7 +18,6 @@
 import UIKit
 import XCTest
 @testable import AeroGearOAuth2
-import AeroGearHttp
 import OHHTTPStubs
 
 public func stub(condition: @escaping OHHTTPStubsTestBlock, response: @escaping OHHTTPStubsResponseBlock) -> OHHTTPStubsDescriptor {
