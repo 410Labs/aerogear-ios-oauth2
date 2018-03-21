@@ -207,7 +207,7 @@ open class OAuth2Module: AuthzModule {
         }
 
         if let loginHint = config.loginHint {
-            queryItems.append(URLQueryItem(name: loginHint.fieldName, value: loginHint.login))
+            queryItems.append(URLQueryItem(name: "login_hint", value: loginHint))
         }
 
         components.queryItems = queryItems
