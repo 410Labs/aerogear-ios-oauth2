@@ -21,6 +21,17 @@ import Foundation
 Configuration object to setup an OAuth2 module
 */
 open class Config {
+
+    public struct LoginHint {
+        let fieldName: String
+        let login: String
+
+        public init(fieldName: String, login: String) {
+            self.fieldName = fieldName
+            self.login = login
+        }
+    }
+
     /**
     Applies the baseURL to the configuration.
     */
@@ -102,6 +113,8 @@ open class Config {
     */
     open var accountId: String?
 
+    open var loginHint: LoginHint?
+
     /**
     Enum to denote what kind of webView to use.
     */
@@ -120,7 +133,7 @@ open class Config {
     */
     open var webView: WebViewType = WebViewType.externalSafari
 
-    public init(base: String, authzEndpoint: String, redirectURL: String, accessTokenEndpoint: String, clientId: String, audienceId: String? = nil, refreshTokenEndpoint: String? = nil, revokeTokenEndpoint: String? = nil, isOpenIDConnect: Bool = false, userInfoEndpoint: String? = nil, scopes: [String] = [],  clientSecret: String? = nil, accountId: String? = nil, webView: WebViewType = WebViewType.externalSafari) {
+    public init(base: String, authzEndpoint: String, redirectURL: String, accessTokenEndpoint: String, clientId: String, audienceId: String? = nil, refreshTokenEndpoint: String? = nil, revokeTokenEndpoint: String? = nil, isOpenIDConnect: Bool = false, userInfoEndpoint: String? = nil, scopes: [String] = [],  clientSecret: String? = nil, accountId: String? = nil, webView: WebViewType = WebViewType.externalSafari, loginHint: LoginHint? = nil) {
         self.baseURL = base
         self.authzEndpoint = authzEndpoint
         self.redirectURL = redirectURL
@@ -135,5 +148,6 @@ open class Config {
         self.audienceId = audienceId
         self.accountId = accountId
         self.webView = webView
+        self.loginHint = loginHint
     }
 }
