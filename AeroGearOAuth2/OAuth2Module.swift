@@ -206,6 +206,10 @@ open class OAuth2Module: AuthzModule {
             queryItems.append(URLQueryItem(name: "audience", value: audienceId))
         }
 
+        if let loginHint = config.loginHint {
+            queryItems.append(URLQueryItem(name: "login_hint", value: loginHint))
+        }
+
         components.queryItems = queryItems
 
         guard let url = components.url else {
